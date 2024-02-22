@@ -1,34 +1,64 @@
+using System;
 using System.Collections;
 using UnityEngine;
-using UnityEngine.Networking; // UnityWebRequest를 사용하기 위해 필요
+using UnityEngine.Networking;
+using UnityEngine.UI;
+using TMPro;
 
 public class APIClient : MonoBehaviour
 {
     // API 엔드포인트 URL
-    string apiUrl = "https://port-0-python-fastapi-17xco2nlsvi25ll.sel5.cloudtype.app/files/";
+    public string[] apiUrls = {
+        "http://127.0.0.1:8000",
+        "https://port-0-python-fastapi-17xco2nlsvi25ll.sel5.cloudtype.app/files/",
+    };
 
-    void Start()
+    public int selectApiUrlNum = 0;
+
+    string apiUrl;
+
+    private void Awake()
     {
-        StartCoroutine(GetFileList("data")); // "data" 디렉터리의 파일 목록을 가져옵니다.
+        apiUrl = apiUrls[selectApiUrlNum];
     }
 
-    IEnumerator GetFileList(string directory)
-    {
-        string url = apiUrl + "?directory=" + directory; // 쿼리 파라미터를 포함한 전체 URL
-        using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
-        {
-            // 요청을 보내고 응답이 올 때까지 대기
-            yield return webRequest.SendWebRequest();
+    // Unity UI 컴포넌트 참조
+    public TMP_InputField loginIDInputField;
+    public TMP_InputField passwordInputField;
+    public TMP_Text resultText; // API 요청 결과를 출력할 Text 컴포넌트
 
-            if (webRequest.isNetworkError)
+    // SignUp 요청을 처리하는 메서드
+    public void SignUp()
+    {
+        string loginID = loginIDInputField.text;
+        string password = passwordInputField.text;
+        StartCoroutine(SignUpRequest(loginID, password));
+    }
+
+    // SignUpRequest 코루틴
+    IEnumerator SignUpRequest(string loginID, string password)
+    {
+        string signUpEndpoint = apiUrl + "/signup/";
+        WWWForm form = new WWWForm();
+        form.AddField("Login_ID", loginID);
+        form.AddField("Login_Password", password);
+
+        using (UnityWebRequest request = UnityWebRequest.Post(signUpEndpoint, form))
+        {
+            yield return request.SendWebRequest();
+
+            if (request.isNetworkError || request.isHttpError)
             {
-                Debug.Log("Error: " + webRequest.error);
+                Debug.LogError("Error: " + request.error);
+                resultText.text = "SignUp Failed: " + request.error;
             }
             else
             {
-                // 서버로부터의 응답 출력
-                Debug.Log("Received: " + webRequest.downloadHandler.text);
+                Debug.Log("SignUp Success: " + request.downloadHandler.text);
+                resultText.text = "SignUp Success!";
             }
         }
     }
+
+    // 기타 API 요청 메서드 추가 예정...
 }
